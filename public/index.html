@@ -1,0 +1,403 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Penilaian Mitra Terbaik SE2026 - BPS Kabupaten Jeneponto</title>
+  
+  <!-- Favicon & Google Fonts (Plus Jakarta Sans) -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:ital,wght@0,300;0,400;0,500;0,600;0,700;0,800;1,400;1,600;1,700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+  
+  <link rel="stylesheet" href="style.css?v=4">
+</head>
+<body>
+  <!-- Ambient Soft Background Accents (Light Aesthetic) -->
+  <div class="blob-bg blob-1"></div>
+  <div class="blob-bg blob-2"></div>
+  <div class="blob-bg blob-3"></div>
+
+  <!-- Main Wrapper -->
+  <div id="app" class="app-container">
+
+    <!-- Top Modern Navbar -->
+    <header id="mainHeader" class="main-header hidden">
+      <div class="header-inner">
+        <div class="brand-box">
+          <img src="/logo.webp" alt="Logo BPS Jeneponto" class="brand-logo-img">
+          <div class="brand-info">
+            <span class="brand-title">Sistem Penilaian Mitra Terbaik</span>
+            <span class="brand-badge">BPS Kab Jeneponto</span>
+          </div>
+        </div>
+
+        <nav class="nav-pills" id="adminNavLinks" style="display: none;">
+          <button id="navBtnDashboard" class="nav-pill active" onclick="switchAdminTab('overview')">
+            <i class="fa-solid fa-chart-pie"></i>
+            <span>Monitoring Progres</span>
+          </button>
+          <button id="navBtnLeaderboard" class="nav-pill" onclick="switchAdminTab('leaderboard')">
+            <i class="fa-solid fa-trophy"></i>
+            <span>Leaderboard Mitra</span>
+          </button>
+        </nav>
+
+        <div class="user-pill-card">
+          <div class="user-avatar-circle" id="headerAvatar">P</div>
+          <div class="user-text-info">
+            <span class="user-display-name" id="headerUserName">Nama Pengguna</span>
+            <span class="user-display-role" id="headerUserRole">PML • Bangkala</span>
+          </div>
+          <button id="btnLogout" class="btn-logout-clean" title="Keluar dari akun">
+            <i class="fa-solid fa-arrow-right-from-bracket"></i>
+          </button>
+        </div>
+      </div>
+    </header>
+
+    <!-- Main Content Area -->
+    <main class="main-content">
+      
+      <!-- 1. LOGIN SECTION (Clean, Minimalist White & Gen-Z Aesthetic) -->
+      <section id="loginSection" class="view-section">
+        <div class="login-container">
+          <div class="login-card-clean">
+            
+            <div class="login-badge-pill">
+              <span class="pulse-dot"></span> Sensus Ekonomi 2026
+            </div>
+
+            <div class="login-header-clean">
+              <img src="/logo.webp" alt="Logo BPS Jeneponto" class="login-logo-img">
+              <h2>Penilaian Mitra Terbaik</h2>
+              <p>Badan Pusat Statistik Kabupaten Jeneponto</p>
+            </div>
+
+            <form id="loginForm" class="form-clean">
+              
+              <div class="input-field-group">
+                <label for="loginUsername">Username</label>
+                <div class="input-box">
+                  <i class="fa-solid fa-user-circle input-icon"></i>
+                  <input type="text" id="loginUsername" placeholder="Ketik username Anda..." required autocomplete="username">
+                </div>
+              </div>
+
+              <div class="input-field-group">
+                <label for="loginPassword">Password</label>
+                <div class="input-box">
+                  <i class="fa-solid fa-lock-keyhole input-icon"></i>
+                  <input type="password" id="loginPassword" placeholder="Ketik password Anda..." required autocomplete="current-password">
+                  <button type="button" class="btn-eye" onclick="togglePasswordVisibility('loginPassword', this)">
+                    <i class="fa-solid fa-eye"></i>
+                  </button>
+                </div>
+              </div>
+
+              <div id="loginAlert" class="alert-clean alert-error hidden"></div>
+
+              <button type="submit" id="btnLoginSubmit" class="btn-clean-primary">
+                <span>Masuk Sekarang</span>
+                <i class="fa-solid fa-arrow-right"></i>
+              </button>
+            </form>
+
+            <div class="login-footer-clean">
+              <div class="note-box">
+                <i class="fa-solid fa-shield-check"></i>
+                <span>Sistem otomatis mendeteksi peran penilai (PML, Pegawai, atau Super Admin).</span>
+              </div>
+            </div>
+
+          </div>
+        </div>
+      </section>
+
+      <!-- 2. EVALUATOR DASHBOARD (PML / PEGAWAI) -->
+      <section id="evaluatorSection" class="view-section hidden">
+        <!-- Modern Hero Bento Banner -->
+        <div class="bento-hero">
+          <div class="bento-hero-left">
+            <div class="tag-role-pill" id="dashRoleTag">
+              <i class="fa-solid fa-user-check"></i> PML Penilai
+            </div>
+            <h1 class="hero-title" id="dashGreeting">Halo, Selamat Bertugas! ✨</h1>
+            <p class="hero-subtitle" id="dashInstruction">
+              Lakukan evaluasi kinerja mitra binaan Anda secara objektif. Nilai yang sudah Anda kirim tetap dapat diedit kembali kapan pun diperlukan.
+            </p>
+          </div>
+
+          <div class="bento-hero-right">
+            <div class="progress-bento-card">
+              <div class="progress-meta-row">
+                <span class="progress-label">Progres Penilaian</span>
+                <span class="progress-count-pill" id="dashProgressCount">0 / 0 Mitra</span>
+              </div>
+              <div class="clean-progress-track">
+                <div class="clean-progress-bar" id="dashProgressBar" style="width: 0%;"></div>
+              </div>
+              <div class="progress-percent-text" id="dashProgressPercent">0% Selesai</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Filter & Search Toolbar -->
+        <div class="toolbar-clean">
+          <div class="search-clean-box">
+            <i class="fa-solid fa-magnifying-glass"></i>
+            <input type="text" id="targetSearchInput" placeholder="Cari nama mitra..." oninput="filterTargetList()">
+          </div>
+          <div class="filter-pills-wrap">
+            <button class="filter-pill active" data-filter="all" onclick="setTargetFilter('all', this)">Semua (<span id="countAll">0</span>)</button>
+            <button class="filter-pill" data-filter="pending" onclick="setTargetFilter('pending', this)">Belum Dinilai (<span id="countPending">0</span>)</button>
+            <button class="filter-pill" data-filter="completed" onclick="setTargetFilter('completed', this)">Sudah Dinilai (<span id="countCompleted">0</span>)</button>
+          </div>
+        </div>
+
+        <!-- Target Cards Grid -->
+        <div class="cards-bento-grid" id="targetsGrid">
+          <!-- Dynamically filled with target cards -->
+        </div>
+      </section>
+
+      <!-- 3. SUPER ADMIN DASHBOARD & LEADERBOARD -->
+      <section id="superAdminSection" class="view-section hidden">
+        
+        <!-- Tab 1: Overview Progress -->
+        <div id="adminTabOverview" class="admin-tab-view">
+          
+          <!-- Top Bento Stats Grid -->
+          <div class="stats-bento-grid">
+            <div class="stat-box-clean card-blue">
+              <div class="stat-top">
+                <span class="stat-lbl">Total Petugas PPL</span>
+                <div class="stat-icon-wrap"><i class="fa-solid fa-users"></i></div>
+              </div>
+              <div class="stat-num" id="adminTotalPPL">0</div>
+              <div class="stat-sub" id="adminEvaluatedPPLSub">0 dinilai (0%)</div>
+            </div>
+
+            <div class="stat-box-clean card-purple">
+              <div class="stat-top">
+                <span class="stat-lbl">Total Pengawas PML</span>
+                <div class="stat-icon-wrap"><i class="fa-solid fa-user-shield"></i></div>
+              </div>
+              <div class="stat-num" id="adminTotalPML">0</div>
+              <div class="stat-sub" id="adminEvaluatedPMLSub">0 dinilai (0%)</div>
+            </div>
+
+            <div class="stat-box-clean card-emerald">
+              <div class="stat-top">
+                <span class="stat-lbl">Pegawai Penilai BPS</span>
+                <div class="stat-icon-wrap"><i class="fa-solid fa-user-tie"></i></div>
+              </div>
+              <div class="stat-num" id="adminTotalPegawai">0</div>
+              <div class="stat-sub">11 Kecamatan Jeneponto</div>
+            </div>
+
+            <div class="stat-box-clean card-indigo">
+              <div class="stat-top">
+                <span class="stat-lbl">Ekspor Data</span>
+                <div class="stat-icon-wrap"><i class="fa-solid fa-file-excel"></i></div>
+              </div>
+              <button class="btn-action-green" onclick="exportExcelReport()">
+                <i class="fa-solid fa-download"></i> Unduh Rekap Excel (.xlsx)
+              </button>
+            </div>
+          </div>
+
+          <!-- Monitoring Table Card -->
+          <div class="table-card-clean">
+            <div class="table-header-clean">
+              <div class="table-title">
+                <i class="fa-solid fa-map-pin"></i>
+                <span>Monitoring Progres Penilaian per Wilayah Kecamatan</span>
+              </div>
+            </div>
+            <div class="table-responsive-clean">
+              <table class="clean-table" id="progressKecamatanTable">
+                <thead>
+                  <tr>
+                    <th>No</th>
+                    <th>Kecamatan</th>
+                    <th>PML Ternilai</th>
+                    <th>Rerata PML</th>
+                    <th>PPL Ternilai</th>
+                    <th>Rerata PPL</th>
+                    <th>Status Progres</th>
+                  </tr>
+                </thead>
+                <tbody id="progressKecamatanTbody">
+                  <!-- Injected via JS -->
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+
+        <!-- Tab 2: Leaderboard & Rankings -->
+        <div id="adminTabLeaderboard" class="admin-tab-view hidden">
+          
+          <div class="leaderboard-top-bar">
+            <div class="category-toggle">
+              <button class="cat-btn active" id="btnRankPPL" onclick="setLeaderboardCategory('PPL')">
+                <i class="fa-solid fa-medal"></i> Ranking PPL Terbaik
+              </button>
+              <button class="cat-btn" id="btnRankPML" onclick="setLeaderboardCategory('PML')">
+                <i class="fa-solid fa-award"></i> Ranking PML Terbaik
+              </button>
+            </div>
+
+            <div class="filter-actions">
+              <div class="select-clean-wrap">
+                <i class="fa-solid fa-filter"></i>
+                <select id="leaderboardKecamatanSelect" onchange="loadAdminLeaderboard()">
+                  <option value="SEMUA">Semua Kecamatan (Kabupaten)</option>
+                  <option value="ARUNGKEKE">Arungkeke</option>
+                  <option value="BANGKALA">Bangkala</option>
+                  <option value="BANGKALA BARAT">Bangkala Barat</option>
+                  <option value="BATANG">Batang</option>
+                  <option value="BINAMU">Binamu</option>
+                  <option value="BONTORAMBA">Bontoramba</option>
+                  <option value="KELARA">Kelara</option>
+                  <option value="RUMBIA">Rumbia</option>
+                  <option value="TAMALATEA">Tamalatea</option>
+                  <option value="TAROWANG">Tarowang</option>
+                  <option value="TURATEA">Turatea</option>
+                </select>
+              </div>
+              <button class="btn-action-outline" onclick="exportExcelReport()">
+                <i class="fa-solid fa-file-excel"></i> Ekspor Excel
+              </button>
+            </div>
+          </div>
+
+          <!-- Gen Z Top 3 Podium Cards -->
+          <div class="genz-podium" id="leaderboardPodium">
+            <!-- Injected via JS -->
+          </div>
+
+          <!-- Full Table Card -->
+          <div class="table-card-clean">
+            <div class="table-responsive-clean">
+              <table class="clean-table" id="leaderboardTable">
+                <thead id="leaderboardThead">
+                  <!-- Header dynamically set -->
+                </thead>
+                <tbody id="leaderboardTbody">
+                  <!-- Rows injected via JS -->
+                </tbody>
+              </table>
+            </div>
+          </div>
+
+        </div>
+
+      </section>
+
+    </main>
+
+    <!-- Clean Modern Footer -->
+    <footer class="clean-footer">
+      <div class="footer-inner">
+        <div class="footer-left-info">
+          <div class="footer-copy">© 2026 BPS Kabupaten Jeneponto. All rights reserved.</div>
+          <div class="footer-tagline">Sistem Penilaian Mitra Terbaik 2026</div>
+        </div>
+        
+        <div class="footer-right-action">
+          <a href="https://github.com/salsabilaputri95" target="_blank" rel="noopener noreferrer" class="github-pill-btn">
+            <i class="fa-brands fa-github"></i>
+            <span>Thinkerstone</span>
+          </a>
+        </div>
+      </div>
+    </footer>
+
+  </div>
+
+  <!-- MODAL: FORMULIR PENILAIAN -->
+  <div id="evaluationModal" class="modal-clean-overlay hidden">
+    <div class="modal-clean-box">
+      
+      <!-- Modal Header -->
+      <div class="modal-head-clean">
+        <div>
+          <div class="modal-badge-tag" id="modalTargetTypeBadge">FORM EVALUASI PPL</div>
+          <h2 class="modal-target-title" id="modalTargetName">Nama Mitra</h2>
+          <div class="modal-sub-meta" id="modalTargetMeta">Kecamatan: Bangkala • Penilai: Hendra</div>
+        </div>
+        <button class="btn-modal-close" onclick="closeEvaluationModal()">
+          <i class="fa-solid fa-xmark"></i>
+        </button>
+      </div>
+
+      <!-- Live Score Dashboard Ribbon -->
+      <div class="live-score-ribbon-clean">
+        <div class="ribbon-col">
+          <span class="ribbon-title">Indikator 1 (35%)</span>
+          <span class="ribbon-score" id="liveInd1">0.00 / 35</span>
+        </div>
+        <div class="ribbon-col">
+          <span class="ribbon-title">Indikator 2 (30%)</span>
+          <span class="ribbon-score" id="liveInd2">0.00 / 30</span>
+        </div>
+        <div class="ribbon-col">
+          <span class="ribbon-title">Indikator 3 (20%)</span>
+          <span class="ribbon-score" id="liveInd3">0.00 / 20</span>
+        </div>
+        <div class="ribbon-col">
+          <span class="ribbon-title">Indikator 4 (15%)</span>
+          <span class="ribbon-score" id="liveInd4">0.00 / 15</span>
+        </div>
+        <div class="ribbon-col final-highlight">
+          <span class="ribbon-title">NILAI AKHIR</span>
+          <span class="ribbon-total-score" id="liveFinalScore">0.00</span>
+          <span class="ribbon-grade" id="livePredikat">-</span>
+        </div>
+      </div>
+
+      <!-- Modal Body (Questions) -->
+      <div class="modal-scroll-body">
+        <form id="evaluationForm">
+          <div id="questionsContainer" class="questions-flow">
+            <!-- Injected via JS -->
+          </div>
+
+          <!-- Notes Area -->
+          <div class="notes-box-clean">
+            <label for="evalNotes">
+              <i class="fa-solid fa-message-captions"></i> Catatan & Rekomendasi Evaluasi (Opsional):
+            </label>
+            <textarea id="evalNotes" rows="3" placeholder="Tuliskan catatan apresiasi atau aspek kinerja yang perlu ditingkatkan..."></textarea>
+          </div>
+        </form>
+      </div>
+
+      <!-- Modal Footer -->
+      <div class="modal-foot-clean">
+        <div class="foot-note">
+          <i class="fa-solid fa-pen-nib"></i> Nilai dapat diedit kembali sewaktu-waktu setelah disimpan.
+        </div>
+        <div class="foot-btns">
+          <button type="button" class="btn-clean-ghost" onclick="closeEvaluationModal()">Batal</button>
+          <button type="button" class="btn-clean-primary" id="btnSaveEvaluation" onclick="submitEvaluationForm()">
+            <i class="fa-solid fa-check"></i> Simpan Penilaian
+          </button>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- Modern Clean Toast -->
+  <div id="toastNotification" class="toast-clean hidden">
+    <i class="fa-solid fa-circle-check" id="toastIcon"></i>
+    <span id="toastMessage">Pemberitahuan</span>
+  </div>
+
+  <script src="app.js?v=2"></script>
+</body>
+</html>
