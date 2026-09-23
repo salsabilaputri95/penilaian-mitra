@@ -1161,6 +1161,24 @@ body {
 .modal-sub-meta {
   font-size: 0.82rem;
   color: var(--text-muted);
+  margin-bottom: 0.4rem;
+}
+.scale-guide-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+  background: var(--primary-light);
+  border: 1px solid var(--primary-border);
+  color: #1e40af;
+  padding: 0.35rem 0.85rem;
+  border-radius: var(--radius-pill);
+  font-size: 0.76rem;
+  font-weight: 600;
+  margin-top: 0.3rem;
+}
+.scale-guide-pill i {
+  color: var(--primary);
+  font-size: 0.85rem;
 }
 .btn-modal-close {
   width: 36px;

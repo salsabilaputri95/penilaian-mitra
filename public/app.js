@@ -173,9 +173,9 @@ async function loadEvaluatorDashboard() {
     greeting.textContent = `Halo, ${currentUser.name} 👋`;
     instruction.textContent = `Berikut adalah daftar PPL (Petugas Pendataan Lapangan) binaan di bawah pengawasan Anda. Berikan penilaian objektif berdasarkan kinerja lapangan.`;
   } else if (currentUser.role === 'Pegawai') {
-    roleTag.innerHTML = `<i class="fa-solid fa-user-tie"></i> PEGAWAI ORGANIK BPS • KEC. ${currentUser.kecamatan}`;
+    roleTag.innerHTML = `<i class="fa-solid fa-user-tie"></i> PEGAWAI ORGANIK BPS JENEPONTO`;
     greeting.textContent = `Halo, ${currentUser.name} 👋`;
-    instruction.textContent = `Berikut adalah daftar PML (Petugas Pengawas Lapangan) di wilayah penugasan Kecamatan ${currentUser.kecamatan}. Berikan evaluasi pengawasan dan manajemen tim mereka.`;
+    instruction.textContent = `Berikut adalah daftar seluruh Pengawas Mitra Lapangan (PML) Sensus Ekonomi 2026 di Kabupaten Jeneponto. Silakan berikan evaluasi kinerja pengawasan dan manajemen tim untuk setiap PML.`;
   }
 
   // Fetch Questions for this evaluator
@@ -285,21 +285,6 @@ function renderTargetCards() {
         </div>
 
         <div>
-          ${isDone ? `
-            <div class="card-score-banner">
-              <div>
-                <div class="score-banner-lbl">Nilai Akhir:</div>
-                <div class="predikat-clean-badge">${target.predikat || 'Ternilai'}</div>
-              </div>
-              <div class="score-banner-val">${Number(target.final_score).toFixed(2)}</div>
-            </div>
-          ` : `
-            <div class="card-score-banner" style="opacity: 0.7;">
-              <div class="score-banner-lbl">Nilai Akhir:</div>
-              <div style="font-size: 0.85rem; color: var(--text-muted); font-style: italic;">Belum diisi</div>
-            </div>
-          `}
-
           <button class="${isDone ? 'btn-card-secondary' : 'btn-card-primary'}" onclick="openEvaluationModal('${encodeURIComponent(JSON.stringify(target))}')">
             <i class="fa-solid ${isDone ? 'fa-pen-to-square' : 'fa-star'}"></i>
             <span>${isDone ? 'Edit Nilai' : 'Beri Nilai Sekarang'}</span>
@@ -400,7 +385,6 @@ function renderQuestionsForm() {
           <div class="indicator-name">
             Indikator ${gIdx + 1}: ${group.indicator}
           </div>
-          <span class="indicator-pill-badge">Bobot ${weightPercent}%</span>
         </div>
         ${questionsHtml}
       </div>
@@ -444,12 +428,18 @@ function recalculateLiveScores() {
   else if (final_score >= 80) predikat = 'Baik (Memuaskan)';
   else if (final_score >= 70) predikat = 'Cukup (Memenuhi Standar)';
 
-  document.getElementById('liveInd1').textContent = `${score_ind1.toFixed(2)} / 35`;
-  document.getElementById('liveInd2').textContent = `${score_ind2.toFixed(2)} / 30`;
-  document.getElementById('liveInd3').textContent = `${score_ind3.toFixed(2)} / 20`;
-  document.getElementById('liveInd4').textContent = `${score_ind4.toFixed(2)} / 15`;
-  document.getElementById('liveFinalScore').textContent = final_score.toFixed(2);
-  document.getElementById('livePredikat').textContent = predikat;
+  const elInd1 = document.getElementById('liveInd1');
+  if (elInd1) elInd1.textContent = `${score_ind1.toFixed(2)} / 35`;
+  const elInd2 = document.getElementById('liveInd2');
+  if (elInd2) elInd2.textContent = `${score_ind2.toFixed(2)} / 30`;
+  const elInd3 = document.getElementById('liveInd3');
+  if (elInd3) elInd3.textContent = `${score_ind3.toFixed(2)} / 20`;
+  const elInd4 = document.getElementById('liveInd4');
+  if (elInd4) elInd4.textContent = `${score_ind4.toFixed(2)} / 15`;
+  const elFinal = document.getElementById('liveFinalScore');
+  if (elFinal) elFinal.textContent = final_score.toFixed(2);
+  const elPred = document.getElementById('livePredikat');
+  if (elPred) elPred.textContent = predikat;
 }
 
 async function submitEvaluationForm() {
@@ -689,7 +679,7 @@ function renderLeaderboardView(list) {
         <th>Manajemen (30%)</th>
         <th>Leadership (20%)</th>
         <th>Komunikasi (15%)</th>
-        <th>Nilai Akhir</th>
+        <th>Rerata Nilai</th>
         <th>Predikat</th>
         <th style="text-align: center; width: 100px;">Aksi</th>
       </tr>

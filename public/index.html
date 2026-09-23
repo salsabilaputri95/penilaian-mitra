@@ -11,7 +11,7 @@
   <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:ital,wght@0,300;0,400;0,500;0,600;0,700;0,800;1,400;1,600;1,700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
   
-  <link rel="stylesheet" href="style.css?v=4">
+  <link rel="stylesheet" href="style.css?v=8">
 </head>
 <body>
   <!-- Ambient Soft Background Accents (Light Aesthetic) -->
@@ -328,35 +328,14 @@
           <div class="modal-badge-tag" id="modalTargetTypeBadge">FORM EVALUASI PPL</div>
           <h2 class="modal-target-title" id="modalTargetName">Nama Mitra</h2>
           <div class="modal-sub-meta" id="modalTargetMeta">Kecamatan: Bangkala • Penilai: Hendra</div>
+          <div class="scale-guide-pill">
+            <i class="fa-solid fa-circle-info"></i>
+            <span><strong>Skala Penilaian:</strong> 1 = Sangat Buruk | 2–9 = Tingkat di antaranya | 10 = Sangat Baik</span>
+          </div>
         </div>
         <button class="btn-modal-close" onclick="closeEvaluationModal()">
           <i class="fa-solid fa-xmark"></i>
         </button>
-      </div>
-
-      <!-- Live Score Dashboard Ribbon -->
-      <div class="live-score-ribbon-clean">
-        <div class="ribbon-col">
-          <span class="ribbon-title">Indikator 1 (35%)</span>
-          <span class="ribbon-score" id="liveInd1">0.00 / 35</span>
-        </div>
-        <div class="ribbon-col">
-          <span class="ribbon-title">Indikator 2 (30%)</span>
-          <span class="ribbon-score" id="liveInd2">0.00 / 30</span>
-        </div>
-        <div class="ribbon-col">
-          <span class="ribbon-title">Indikator 3 (20%)</span>
-          <span class="ribbon-score" id="liveInd3">0.00 / 20</span>
-        </div>
-        <div class="ribbon-col">
-          <span class="ribbon-title">Indikator 4 (15%)</span>
-          <span class="ribbon-score" id="liveInd4">0.00 / 15</span>
-        </div>
-        <div class="ribbon-col final-highlight">
-          <span class="ribbon-title">NILAI AKHIR</span>
-          <span class="ribbon-total-score" id="liveFinalScore">0.00</span>
-          <span class="ribbon-grade" id="livePredikat">-</span>
-        </div>
       </div>
 
       <!-- Modal Body (Questions) -->

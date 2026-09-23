@@ -155,7 +155,7 @@ app.get('/api/targets', (req, res) => {
   } 
   
   if (user.role === 'Pegawai') {
-    // Pegawai hanya menilai PML di kecamatannya
+    // Pegawai menilai SEMUA PML (seluruh Kabupaten Jeneponto)
     const pmlList = db.prepare(`
       SELECT 
         u.id as user_pml_id,
@@ -167,15 +167,15 @@ app.get('/api/targets', (req, res) => {
         e.predikat,
         e.updated_at,
         CASE WHEN e.id IS NOT NULL THEN 1 ELSE 0 END as is_evaluated,
-        (SELECT COUNT(*) FROM relations_ppl_pml WHERE UPPER(TRIM(nama_pml)) = UPPER(TRIM(u.name))) as total_ppl_count
+        (SELECT COUNT(DISTINCT UPPER(TRIM(nama_ppl))) FROM relations_ppl_pml WHERE UPPER(TRIM(nama_pml)) = UPPER(TRIM(u.name))) as total_ppl_count
       FROM users u
       LEFT JOIN evaluations e 
         ON e.evaluator_id = ? 
-        AND e.target_name = u.name 
+        AND UPPER(TRIM(e.target_name)) = UPPER(TRIM(u.name)) 
         AND e.target_type = 'PML'
-      WHERE u.role = 'PML' AND UPPER(TRIM(u.kecamatan)) = UPPER(TRIM(?))
-      ORDER BY u.name ASC
-    `).all(user.id, user.kecamatan);
+      WHERE u.role = 'PML'
+      ORDER BY u.kecamatan ASC, u.name ASC
+    `).all(user.id);
 
     return res.json({
       user,
@@ -246,12 +246,12 @@ app.post('/api/evaluations', (req, res) => {
     if (targetType !== 'PML') {
       return res.status(403).json({ error: 'Pegawai hanya berhak menilai PML!' });
     }
-    const checkKec = db.prepare(`
+    const checkPml = db.prepare(`
       SELECT * FROM users 
-      WHERE role = 'PML' AND UPPER(TRIM(name)) = UPPER(TRIM(?)) AND UPPER(TRIM(kecamatan)) = UPPER(TRIM(?))
-    `).get(targetName, user.kecamatan);
-    if (!checkKec) {
-      return res.status(403).json({ error: 'PML ini tidak berada di wilayah kecamatan penugasan Anda!' });
+      WHERE role = 'PML' AND UPPER(TRIM(name)) = UPPER(TRIM(?))
+    `).get(targetName);
+    if (!checkPml) {
+      return res.status(403).json({ error: 'PML ini tidak terdaftar di sistem BPS Kabupaten Jeneponto!' });
     }
   } else {
     return res.status(403).json({ error: 'Role Anda tidak diizinkan melakukan pengisian nilai.' });
@@ -426,19 +426,18 @@ app.get('/api/admin/leaderboard', checkSuperAdmin, (req, res) => {
 
   let queryPML = `
     SELECT 
-      e.id,
+      MIN(e.id) as id,
       e.target_name as nama_pml,
-      e.evaluator_name as nama_pegawai,
+      GROUP_CONCAT(DISTINCT e.evaluator_name) as nama_pegawai,
+      COUNT(DISTINCT e.evaluator_id) as total_penilai,
       e.kecamatan,
-      e.score_ind1,
-      e.score_ind2,
-      e.score_ind3,
-      e.score_ind4,
-      e.final_score,
-      e.predikat,
-      e.notes,
-      e.updated_at,
-      (SELECT COUNT(*) FROM relations_ppl_pml WHERE UPPER(TRIM(nama_pml)) = UPPER(TRIM(e.target_name))) as total_ppl_binaan
+      ROUND(AVG(e.score_ind1), 2) as score_ind1,
+      ROUND(AVG(e.score_ind2), 2) as score_ind2,
+      ROUND(AVG(e.score_ind3), 2) as score_ind3,
+      ROUND(AVG(e.score_ind4), 2) as score_ind4,
+      ROUND(AVG(e.final_score), 2) as final_score,
+      MAX(e.updated_at) as updated_at,
+      (SELECT COUNT(DISTINCT UPPER(TRIM(nama_ppl))) FROM relations_ppl_pml WHERE UPPER(TRIM(nama_pml)) = UPPER(TRIM(e.target_name))) as total_ppl_binaan
     FROM evaluations e
     WHERE e.target_type = 'PML'
   `;
@@ -449,13 +448,23 @@ app.get('/api/admin/leaderboard', checkSuperAdmin, (req, res) => {
     paramsPML.push(kecamatan.toUpperCase());
   }
 
-  queryPML += ` ORDER BY e.final_score DESC, e.score_ind1 DESC, e.score_ind2 DESC, e.updated_at ASC`;
+  queryPML += ` GROUP BY UPPER(TRIM(e.target_name)), UPPER(TRIM(e.kecamatan))`;
+  queryPML += ` ORDER BY final_score DESC, score_ind1 DESC, score_ind2 DESC, updated_at ASC`;
   if (limit) {
     queryPML += ` LIMIT ?`;
     paramsPML.push(parseInt(limit));
   }
 
   const leaderboardPML = db.prepare(queryPML).all(...paramsPML);
+
+  // Assign Predikat to calculated average
+  leaderboardPML.forEach(pml => {
+    const score = pml.final_score;
+    if (score >= 90) pml.predikat = 'Sangat Baik (Sangat Memuaskan)';
+    else if (score >= 80) pml.predikat = 'Baik (Memuaskan)';
+    else if (score >= 70) pml.predikat = 'Cukup (Memenuhi Standar)';
+    else pml.predikat = 'Perlu Pembinaan';
+  });
 
   res.json({
     leaderboardPPL,
