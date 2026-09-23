@@ -261,6 +261,7 @@ function renderTargetCards() {
     const isDone = target.is_evaluated === 1;
     const targetTypeLabel = target.target_type === 'PPL' ? 'Petugas Lapangan (PPL)' : 'Pengawas Lapangan (PML)';
     const pplSub = target.total_ppl_count ? `<span>• <i class="fa-solid fa-users"></i> ${target.total_ppl_count} PPL Tim</span>` : '';
+    const targetIdx = currentTargets.indexOf(target);
 
     return `
       <div class="target-bento-card">
@@ -285,7 +286,7 @@ function renderTargetCards() {
         </div>
 
         <div>
-          <button class="${isDone ? 'btn-card-secondary' : 'btn-card-primary'}" onclick="openEvaluationModal('${encodeURIComponent(JSON.stringify(target))}')">
+          <button class="${isDone ? 'btn-card-secondary' : 'btn-card-primary'}" onclick="openEvaluationModalByIndex(${targetIdx})">
             <i class="fa-solid ${isDone ? 'fa-pen-to-square' : 'fa-star'}"></i>
             <span>${isDone ? 'Edit Nilai' : 'Beri Nilai Sekarang'}</span>
           </button>
@@ -296,8 +297,13 @@ function renderTargetCards() {
 }
 
 // ----------------- FORM EVALUASI MODAL -----------------
-async function openEvaluationModal(encodedTarget) {
-  const target = JSON.parse(decodeURIComponent(encodedTarget));
+function openEvaluationModalByIndex(index) {
+  const target = currentTargets[index];
+  if (!target) return;
+  openEvaluationModal(target);
+}
+
+async function openEvaluationModal(target) {
   activeTarget = target;
   currentScores = {};
 
@@ -681,7 +687,10 @@ async function loadAdminLeaderboard() {
   }
 }
 
+let currentLeaderboardData = [];
+
 function renderLeaderboardView(list) {
+  currentLeaderboardData = list || [];
   const podiumContainer = document.getElementById('leaderboardPodium');
   const thead = document.getElementById('leaderboardThead');
   const tbody = document.getElementById('leaderboardTbody');
@@ -805,7 +814,7 @@ function renderLeaderboardView(list) {
           <span class="predikat-clean-badge">${row.predikat}</span>
         </td>
         <td style="text-align: center;">
-          <button class="btn-clean-delete" title="Hapus Penilaian" onclick="deleteEvaluation(${row.id}, '${encodeURIComponent(targetName)}', '${isPPL ? 'PPL' : 'PML'}')">
+          <button class="btn-clean-delete" title="Hapus Penilaian" onclick="deleteEvaluation(${row.id})">
             <i class="fa-solid fa-trash-can"></i> Hapus
           </button>
         </td>
@@ -814,8 +823,11 @@ function renderLeaderboardView(list) {
   }).join('');
 }
 
-async function deleteEvaluation(evalId, encodedTargetName, targetType) {
-  const targetName = decodeURIComponent(encodedTargetName);
+async function deleteEvaluation(evalId) {
+  const isPPL = activeLeaderboardCategory === 'PPL';
+  const item = currentLeaderboardData.find(r => r.id === evalId);
+  const targetName = item ? (isPPL ? item.nama_ppl : item.nama_pml) : 'mitra';
+  const targetType = isPPL ? 'PPL' : 'PML';
   
   const confirmDelete = confirm(
     `Apakah Anda yakin ingin menghapus penilaian untuk ${targetName} (${targetType})?\n\n` +
