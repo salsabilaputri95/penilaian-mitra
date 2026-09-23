@@ -11,7 +11,7 @@
   <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:ital,wght@0,300;0,400;0,500;0,600;0,700;0,800;1,400;1,600;1,700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
   
-  <link rel="stylesheet" href="style.css?v=8">
+  <link rel="stylesheet" href="style.css?v=9">
 </head>
 <body>
   <!-- Ambient Soft Background Accents (Light Aesthetic) -->
@@ -208,28 +208,68 @@
             </div>
           </div>
 
-          <!-- Monitoring Table Card -->
+          <!-- Monitoring Penilai Table Card -->
           <div class="table-card-clean">
             <div class="table-header-clean">
               <div class="table-title">
-                <i class="fa-solid fa-map-pin"></i>
-                <span>Monitoring Progres Penilaian per Wilayah Kecamatan</span>
+                <i class="fa-solid fa-users-gear"></i>
+                <span>Monitoring Progres Penilai (PML & Pegawai BPS)</span>
+              </div>
+
+              <!-- Filter Toolbar Monitoring -->
+              <div class="monitoring-filter-bar">
+                <div class="search-mini-box">
+                  <i class="fa-solid fa-magnifying-glass"></i>
+                  <input type="text" id="evaluatorSearchInput" placeholder="Cari nama penilai..." oninput="filterEvaluatorTable()">
+                </div>
+                <div class="select-mini-wrap">
+                  <select id="evaluatorKecFilter" onchange="filterEvaluatorTable()">
+                    <option value="SEMUA">Semua Kecamatan</option>
+                    <option value="ARUNGKEKE">Arungkeke</option>
+                    <option value="BANGKALA">Bangkala</option>
+                    <option value="BANGKALA BARAT">Bangkala Barat</option>
+                    <option value="BATANG">Batang</option>
+                    <option value="BINAMU">Binamu</option>
+                    <option value="BONTORAMBA">Bontoramba</option>
+                    <option value="KELARA">Kelara</option>
+                    <option value="RUMBIA">Rumbia</option>
+                    <option value="TAMALATEA">Tamalatea</option>
+                    <option value="TAROWANG">Tarowang</option>
+                    <option value="TURATEA">Turatea</option>
+                  </select>
+                </div>
               </div>
             </div>
+
+            <!-- Role Selector Tabs -->
+            <div class="monitoring-role-tabs">
+              <button class="role-tab-btn active" data-role="all" onclick="setEvaluatorRoleFilter('all', this)">
+                Semua Penilai (<span id="countEvalAll">0</span>)
+              </button>
+              <button class="role-tab-btn" data-role="Pegawai" onclick="setEvaluatorRoleFilter('Pegawai', this)">
+                <i class="fa-solid fa-user-tie"></i> Pegawai BPS (<span id="countEvalPeg">0</span>)
+              </button>
+              <button class="role-tab-btn" data-role="PML" onclick="setEvaluatorRoleFilter('PML', this)">
+                <i class="fa-solid fa-user-shield"></i> Pengawas PML (<span id="countEvalPml">0</span>)
+              </button>
+            </div>
+
             <div class="table-responsive-clean">
-              <table class="clean-table" id="progressKecamatanTable">
+              <table class="clean-table" id="progressEvaluatorTable">
                 <thead>
                   <tr>
-                    <th>No</th>
+                    <th style="width: 50px;">No</th>
+                    <th>Nama Penilai</th>
+                    <th>Peran</th>
                     <th>Kecamatan</th>
-                    <th>PML Ternilai</th>
-                    <th>Rerata PML</th>
-                    <th>PPL Ternilai</th>
-                    <th>Rerata PPL</th>
-                    <th>Status Progres</th>
+                    <th style="text-align: center;">Target Mitra</th>
+                    <th style="text-align: center;">Sudah Dinilai</th>
+                    <th style="text-align: center;">Belum Dinilai</th>
+                    <th style="width: 170px;">Progres (%)</th>
+                    <th style="text-align: center;">Status</th>
                   </tr>
                 </thead>
-                <tbody id="progressKecamatanTbody">
+                <tbody id="progressEvaluatorTbody">
                   <!-- Injected via JS -->
                 </tbody>
               </table>

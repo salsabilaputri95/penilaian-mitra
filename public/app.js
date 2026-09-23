@@ -523,6 +523,10 @@ function switchAdminTab(tabName) {
   }
 }
 
+// State Monitoring Admin
+let allEvaluatorProgress = [];
+let currentEvalRoleFilter = 'all';
+
 async function loadAdminOverview() {
   if (!currentUser || currentUser.role !== 'Super Admin') return;
 
@@ -532,9 +536,10 @@ async function loadAdminOverview() {
 
     if (!res.ok) throw new Error(data.error || 'Gagal memuat ringkasan admin.');
 
-    const { summary, progressKecamatan } = data;
+    const { summary, evaluatorProgress } = data;
+    allEvaluatorProgress = evaluatorProgress || [];
 
-    // Metrics
+    // Metrics Overview
     document.getElementById('adminTotalPPL').textContent = summary.totalPPL;
     document.getElementById('adminEvaluatedPPLSub').textContent = `${summary.totalEvaluasiPPL} dinilai (${summary.progressPPLPercent}%)`;
 
@@ -543,41 +548,112 @@ async function loadAdminOverview() {
 
     document.getElementById('adminTotalPegawai').textContent = summary.totalPegawai;
 
-    // Table Progress by Kecamatan
-    const tbody = document.getElementById('progressKecamatanTbody');
-    tbody.innerHTML = progressKecamatan.map((k, idx) => {
-      const pmlDonePercent = k.total_pml > 0 ? Math.round((k.evaluated_pml / k.total_pml) * 100) : 0;
-      const pplDonePercent = k.total_ppl > 0 ? Math.round((k.evaluated_ppl / k.total_ppl) * 100) : 0;
-      const totalDone = pmlDonePercent === 100 && pplDonePercent === 100;
+    // Counts for Tabs
+    const countPeg = allEvaluatorProgress.filter(e => e.role === 'Pegawai').length;
+    const countPml = allEvaluatorProgress.filter(e => e.role === 'PML').length;
+    document.getElementById('countEvalAll').textContent = allEvaluatorProgress.length;
+    document.getElementById('countEvalPeg').textContent = countPeg;
+    document.getElementById('countEvalPml').textContent = countPml;
 
-      return `
-        <tr>
-          <td><strong>${idx + 1}</strong></td>
-          <td><strong style="color: var(--text-main);">${k.kecamatan}</strong></td>
-          <td>
-            <span style="font-weight: 700;">${k.evaluated_pml}</span> / ${k.total_pml}
-            <span style="font-size: 0.75rem; color: var(--text-muted); margin-left: 4px;">(${pmlDonePercent}%)</span>
-          </td>
-          <td style="color: #047857; font-weight: 700;">${k.avg_score_pml > 0 ? k.avg_score_pml.toFixed(2) : '-'}</td>
-          <td>
-            <span style="font-weight: 700;">${k.evaluated_ppl}</span> / ${k.total_ppl}
-            <span style="font-size: 0.75rem; color: var(--text-muted); margin-left: 4px;">(${pplDonePercent}%)</span>
-          </td>
-          <td style="color: #047857; font-weight: 700;">${k.avg_score_ppl > 0 ? k.avg_score_ppl.toFixed(2) : '-'}</td>
-          <td>
-            <span class="clean-status-tag ${totalDone ? 'tag-completed' : 'tag-pending'}">
-              <i class="fa-solid ${totalDone ? 'fa-check-double' : 'fa-spinner'}"></i>
-              ${totalDone ? 'Selesai 100%' : 'Berjalan'}
-            </span>
-          </td>
-        </tr>
-      `;
-    }).join('');
-
+    renderEvaluatorProgressTable();
   } catch (err) {
     console.error('Error loading overview:', err);
     showToast('Gagal memuat data statistik overview.', 'error');
   }
+}
+
+function setEvaluatorRoleFilter(role, btn) {
+  currentEvalRoleFilter = role;
+  document.querySelectorAll('.role-tab-btn').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  renderEvaluatorProgressTable();
+}
+
+function filterEvaluatorTable() {
+  renderEvaluatorProgressTable();
+}
+
+function renderEvaluatorProgressTable() {
+  const tbody = document.getElementById('progressEvaluatorTbody');
+  const search = (document.getElementById('evaluatorSearchInput')?.value || '').trim().toLowerCase();
+  const kecFilter = document.getElementById('evaluatorKecFilter')?.value || 'SEMUA';
+
+  const filtered = allEvaluatorProgress.filter(ev => {
+    // Role filter
+    if (currentEvalRoleFilter !== 'all' && ev.role !== currentEvalRoleFilter) {
+      return false;
+    }
+    // Kecamatan filter
+    if (kecFilter !== 'SEMUA' && ev.kecamatan.toUpperCase() !== kecFilter.toUpperCase()) {
+      return false;
+    }
+    // Search filter
+    if (search && !ev.name.toLowerCase().includes(search) && !ev.kecamatan.toLowerCase().includes(search)) {
+      return false;
+    }
+    return true;
+  });
+
+  if (filtered.length === 0) {
+    tbody.innerHTML = `
+      <tr>
+        <td colspan="9" style="text-align: center; padding: 2.5rem; color: var(--text-muted);">
+          <i class="fa-solid fa-users-slash" style="font-size: 1.8rem; margin-bottom: 0.5rem; display: block;"></i>
+          Tidak ada data penilai yang sesuai dengan filter.
+        </td>
+      </tr>
+    `;
+    return;
+  }
+
+  tbody.innerHTML = filtered.map((ev, idx) => {
+    const isPeg = ev.role === 'Pegawai';
+    const roleBadge = isPeg 
+      ? `<span class="badge-role-peg"><i class="fa-solid fa-user-tie"></i> Pegawai BPS</span>`
+      : `<span class="badge-role-pml"><i class="fa-solid fa-user-shield"></i> Pengawas PML</span>`;
+
+    let statusHtml = '';
+    if (ev.percent >= 100) {
+      statusHtml = `<span class="clean-status-tag tag-completed"><i class="fa-solid fa-check-double"></i> Selesai 100%</span>`;
+    } else if (ev.evaluated_count > 0) {
+      statusHtml = `<span class="clean-status-tag tag-progress"><i class="fa-solid fa-spinner fa-spin"></i> Berjalan</span>`;
+    } else {
+      statusHtml = `<span class="clean-status-tag tag-pending"><i class="fa-solid fa-clock"></i> Belum Mengisi</span>`;
+    }
+
+    return `
+      <tr>
+        <td style="color: var(--text-muted); font-weight: 700;">${idx + 1}</td>
+        <td>
+          <strong style="color: var(--text-main); font-size: 0.92rem;">${ev.name}</strong>
+        </td>
+        <td>${roleBadge}</td>
+        <td><i class="fa-solid fa-location-dot" style="color: var(--primary); font-size: 0.75rem;"></i> ${ev.kecamatan}</td>
+        <td style="text-align: center; font-weight: 700; color: var(--text-main);">${ev.target_count}</td>
+        <td style="text-align: center;">
+          <span style="font-weight: 800; color: #047857; background: #ecfdf5; padding: 0.2rem 0.6rem; border-radius: var(--radius-pill); border: 1px solid #a7f3d0;">
+            ${ev.evaluated_count}
+          </span>
+        </td>
+        <td style="text-align: center;">
+          <span style="font-weight: 800; color: ${ev.pending_count > 0 ? '#b45309' : '#64748b'}; background: ${ev.pending_count > 0 ? '#fffbeb' : '#f1f5f9'}; padding: 0.2rem 0.6rem; border-radius: var(--radius-pill); border: 1px solid ${ev.pending_count > 0 ? '#fde68a' : '#e2e8f0'};">
+            ${ev.pending_count}
+          </span>
+        </td>
+        <td>
+          <div style="display: flex; align-items: center; gap: 0.6rem;">
+            <div class="mini-progress-track">
+              <div class="mini-progress-fill" style="width: ${ev.percent}%;"></div>
+            </div>
+            <span style="font-size: 0.78rem; font-weight: 800; color: var(--text-main); min-width: 42px;">${ev.percent}%</span>
+          </div>
+        </td>
+        <td style="text-align: center;">
+          ${statusHtml}
+        </td>
+      </tr>
+    `;
+  }).join('');
 }
 
 function setLeaderboardCategory(cat) {

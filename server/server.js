@@ -343,37 +343,70 @@ function checkSuperAdmin(req, res, next) {
 app.get('/api/admin/overview', checkSuperAdmin, (req, res) => {
   const totalPegawai = db.prepare("SELECT COUNT(*) as c FROM users WHERE role = 'Pegawai'").get().c;
   const totalPML = db.prepare("SELECT COUNT(*) as c FROM users WHERE role = 'PML'").get().c;
-  const totalPPL = db.prepare("SELECT COUNT(*) as c FROM relations_ppl_pml").get().c;
+  const totalPPL = db.prepare("SELECT COUNT(DISTINCT UPPER(TRIM(nama_ppl))) as c FROM relations_ppl_pml").get().c;
 
   const totalEvaluasiPPL = db.prepare("SELECT COUNT(*) as c FROM evaluations WHERE target_type = 'PPL'").get().c;
   const totalEvaluasiPML = db.prepare("SELECT COUNT(*) as c FROM evaluations WHERE target_type = 'PML'").get().c;
 
-  // Progres per kecamatan
-  const kecamatans = [
-    'ARUNGKEKE', 'BANGKALA', 'BANGKALA BARAT', 'BATANG', 'BINAMU',
-    'BONTORAMBA', 'KELARA', 'RUMBIA', 'TAMALATEA', 'TAROWANG', 'TURATEA'
-  ];
-
-  const progressKecamatan = kecamatans.map(kec => {
-    const pmlInKec = db.prepare("SELECT COUNT(*) as c FROM users WHERE role = 'PML' AND UPPER(kecamatan) = ?").get(kec).c;
-    const pplInKec = db.prepare("SELECT COUNT(*) as c FROM relations_ppl_pml WHERE UPPER(kecamatan) = ?").get(kec).c;
-    
-    const pmlEvaluated = db.prepare("SELECT COUNT(*) as c FROM evaluations WHERE target_type = 'PML' AND UPPER(kecamatan) = ?").get(kec).c;
-    const pplEvaluated = db.prepare("SELECT COUNT(*) as c FROM evaluations WHERE target_type = 'PPL' AND UPPER(kecamatan) = ?").get(kec).c;
-
-    const avgPPLScore = db.prepare("SELECT AVG(final_score) as avg FROM evaluations WHERE target_type = 'PPL' AND UPPER(kecamatan) = ?").get(kec).avg || 0;
-    const avgPMLScore = db.prepare("SELECT AVG(final_score) as avg FROM evaluations WHERE target_type = 'PML' AND UPPER(kecamatan) = ?").get(kec).avg || 0;
+  // 1. Progres Penilai: Pegawai (Menilai seluruh 47 PML)
+  const pegawais = db.prepare("SELECT id, name, kecamatan, role FROM users WHERE role = 'Pegawai' ORDER BY kecamatan ASC, name ASC").all();
+  const pegawaiProgress = pegawais.map(peg => {
+    const targetCount = totalPML; // 47 PML
+    const evaluatedCount = db.prepare(`
+      SELECT COUNT(DISTINCT UPPER(TRIM(target_name))) as c 
+      FROM evaluations 
+      WHERE evaluator_id = ? AND target_type = 'PML'
+    `).get(peg.id).c;
+    const pendingCount = Math.max(0, targetCount - evaluatedCount);
+    const percent = targetCount > 0 ? Number(((evaluatedCount / targetCount) * 100).toFixed(1)) : 0;
 
     return {
-      kecamatan: kec,
-      total_pml: pmlInKec,
-      evaluated_pml: pmlEvaluated,
-      total_ppl: pplInKec,
-      evaluated_ppl: pplEvaluated,
-      avg_score_ppl: Number(avgPPLScore.toFixed(2)),
-      avg_score_pml: Number(avgPMLScore.toFixed(2))
+      id: peg.id,
+      name: peg.name,
+      role: 'Pegawai',
+      kecamatan: peg.kecamatan,
+      target_count: targetCount,
+      evaluated_count: evaluatedCount,
+      pending_count: pendingCount,
+      percent: percent,
+      is_complete: evaluatedCount >= targetCount
     };
   });
+
+  // 2. Progres Penilai: PML (Menilai PPL binaannya masing-masing)
+  const pmls = db.prepare("SELECT id, name, kecamatan, role FROM users WHERE role = 'PML' ORDER BY kecamatan ASC, name ASC").all();
+  const pmlProgress = pmls.map(pml => {
+    const targetCount = db.prepare(`
+      SELECT COUNT(DISTINCT UPPER(TRIM(nama_ppl))) as c 
+      FROM relations_ppl_pml 
+      WHERE UPPER(TRIM(nama_pml)) = UPPER(TRIM(?))
+    `).get(pml.name).c;
+
+    const evaluatedCount = db.prepare(`
+      SELECT COUNT(DISTINCT UPPER(TRIM(target_name))) as c 
+      FROM evaluations 
+      WHERE evaluator_id = ? AND target_type = 'PPL'
+    `).get(pml.id).c;
+
+    const pendingCount = Math.max(0, targetCount - evaluatedCount);
+    const percent = targetCount > 0 ? Number(((evaluatedCount / targetCount) * 100).toFixed(1)) : 0;
+
+    return {
+      id: pml.id,
+      name: pml.name,
+      role: 'PML',
+      kecamatan: pml.kecamatan,
+      target_count: targetCount,
+      evaluated_count: evaluatedCount,
+      pending_count: pendingCount,
+      percent: percent,
+      is_complete: targetCount > 0 && evaluatedCount >= targetCount
+    };
+  });
+
+  // Total progres evaluasi PPL (Target total relasi unik)
+  const totalTargetRelasiPPL = db.prepare("SELECT COUNT(*) as c FROM relations_ppl_pml").get().c;
+  const totalTargetEvaluasiPML = totalPegawai * totalPML; // Jika seluruh pegawai menilai seluruh PML
 
   res.json({
     summary: {
@@ -382,10 +415,13 @@ app.get('/api/admin/overview', checkSuperAdmin, (req, res) => {
       totalPPL,
       totalEvaluasiPPL,
       totalEvaluasiPML,
-      progressPPLPercent: totalPPL > 0 ? Number(((totalEvaluasiPPL / totalPPL) * 100).toFixed(1)) : 0,
-      progressPMLPercent: totalPML > 0 ? Number(((totalEvaluasiPML / totalPML) * 100).toFixed(1)) : 0
+      progressPPLPercent: totalTargetRelasiPPL > 0 ? Number(((totalEvaluasiPPL / totalTargetRelasiPPL) * 100).toFixed(1)) : 0,
+      progressPMLPercent: totalTargetEvaluasiPML > 0 ? Number(((totalEvaluasiPML / totalTargetEvaluasiPML) * 100).toFixed(1)) : 0
     },
-    progressKecamatan
+    evaluatorProgress: [
+      ...pegawaiProgress,
+      ...pmlProgress
+    ]
   });
 });
 
@@ -612,39 +648,59 @@ app.get('/api/admin/export', checkSuperAdmin, async (req, res) => {
       cell.alignment = { vertical: 'middle', horizontal: 'center' };
     });
 
-    // 3. Sheet Ringkasan Progres Kecamatan
-    const sheetProgress = workbook.addWorksheet('Progres Penilaian');
+    // 3. Sheet Monitoring Progres Penilai
+    const sheetProgress = workbook.addWorksheet('Monitoring Progres Penilai');
     sheetProgress.columns = [
+      { header: 'No', key: 'no', width: 6 },
+      { header: 'Nama Penilai', key: 'name', width: 30 },
+      { header: 'Peran', key: 'role', width: 16 },
       { header: 'Kecamatan', key: 'kecamatan', width: 22 },
-      { header: 'Total PML', key: 'total_pml', width: 14 },
-      { header: 'PML Ternilai', key: 'evaluated_pml', width: 16 },
-      { header: 'Rata-rata Skor PML', key: 'avg_score_pml', width: 20 },
-      { header: 'Total PPL', key: 'total_ppl', width: 14 },
-      { header: 'PPL Ternilai', key: 'evaluated_ppl', width: 16 },
-      { header: 'Rata-rata Skor PPL', key: 'avg_score_ppl', width: 20 }
+      { header: 'Target Mitra', key: 'target_count', width: 15 },
+      { header: 'Sudah Dinilai', key: 'evaluated_count', width: 15 },
+      { header: 'Belum Dinilai', key: 'pending_count', width: 15 },
+      { header: 'Progres (%)', key: 'percent', width: 14 },
+      { header: 'Status', key: 'status', width: 18 }
     ];
 
-    const kecamatans = [
-      'ARUNGKEKE', 'BANGKALA', 'BANGKALA BARAT', 'BATANG', 'BINAMU',
-      'BONTORAMBA', 'KELARA', 'RUMBIA', 'TAMALATEA', 'TAROWANG', 'TURATEA'
-    ];
+    // Data Pegawai
+    const pegawais = db.prepare("SELECT id, name, kecamatan, role FROM users WHERE role = 'Pegawai' ORDER BY kecamatan ASC, name ASC").all();
+    const totalPMLCount = db.prepare("SELECT COUNT(*) as c FROM users WHERE role = 'PML'").get().c;
+    let noCounter = 1;
 
-    kecamatans.forEach(kec => {
-      const pmlInKec = db.prepare("SELECT COUNT(*) as c FROM users WHERE role = 'PML' AND UPPER(kecamatan) = ?").get(kec).c;
-      const pplInKec = db.prepare("SELECT COUNT(*) as c FROM relations_ppl_pml WHERE UPPER(kecamatan) = ?").get(kec).c;
-      const pmlEvaluated = db.prepare("SELECT COUNT(*) as c FROM evaluations WHERE target_type = 'PML' AND UPPER(kecamatan) = ?").get(kec).c;
-      const pplEvaluated = db.prepare("SELECT COUNT(*) as c FROM evaluations WHERE target_type = 'PPL' AND UPPER(kecamatan) = ?").get(kec).c;
-      const avgPPLScore = db.prepare("SELECT AVG(final_score) as avg FROM evaluations WHERE target_type = 'PPL' AND UPPER(kecamatan) = ?").get(kec).avg || 0;
-      const avgPMLScore = db.prepare("SELECT AVG(final_score) as avg FROM evaluations WHERE target_type = 'PML' AND UPPER(kecamatan) = ?").get(kec).avg || 0;
-
+    pegawais.forEach(peg => {
+      const evaluatedCount = db.prepare("SELECT COUNT(DISTINCT UPPER(TRIM(target_name))) as c FROM evaluations WHERE evaluator_id = ? AND target_type = 'PML'").get(peg.id).c;
+      const pendingCount = Math.max(0, totalPMLCount - evaluatedCount);
+      const percent = totalPMLCount > 0 ? Number(((evaluatedCount / totalPMLCount) * 100).toFixed(1)) : 0;
       sheetProgress.addRow({
-        kecamatan: kec,
-        total_pml: pmlInKec,
-        evaluated_pml: pmlEvaluated,
-        avg_score_pml: Number(avgPMLScore.toFixed(2)),
-        total_ppl: pplInKec,
-        evaluated_ppl: pplEvaluated,
-        avg_score_ppl: Number(avgPPLScore.toFixed(2))
+        no: noCounter++,
+        name: peg.name,
+        role: 'Pegawai BPS',
+        kecamatan: peg.kecamatan,
+        target_count: totalPMLCount,
+        evaluated_count: evaluatedCount,
+        pending_count: pendingCount,
+        percent: `${percent}%`,
+        status: percent >= 100 ? 'Selesai 100%' : (evaluatedCount > 0 ? 'Sedang Berjalan' : 'Belum Mengisi')
+      });
+    });
+
+    // Data PML
+    const pmls = db.prepare("SELECT id, name, kecamatan, role FROM users WHERE role = 'PML' ORDER BY kecamatan ASC, name ASC").all();
+    pmls.forEach(pml => {
+      const targetCount = db.prepare("SELECT COUNT(DISTINCT UPPER(TRIM(nama_ppl))) as c FROM relations_ppl_pml WHERE UPPER(TRIM(nama_pml)) = UPPER(TRIM(?))").get(pml.name).c;
+      const evaluatedCount = db.prepare("SELECT COUNT(DISTINCT UPPER(TRIM(target_name))) as c FROM evaluations WHERE evaluator_id = ? AND target_type = 'PPL'").get(pml.id).c;
+      const pendingCount = Math.max(0, targetCount - evaluatedCount);
+      const percent = targetCount > 0 ? Number(((evaluatedCount / targetCount) * 100).toFixed(1)) : 0;
+      sheetProgress.addRow({
+        no: noCounter++,
+        name: pml.name,
+        role: 'Pengawas PML',
+        kecamatan: pml.kecamatan,
+        target_count: targetCount,
+        evaluated_count: evaluatedCount,
+        pending_count: pendingCount,
+        percent: `${percent}%`,
+        status: percent >= 100 ? 'Selesai 100%' : (evaluatedCount > 0 ? 'Sedang Berjalan' : 'Belum Mengisi')
       });
     });
 
